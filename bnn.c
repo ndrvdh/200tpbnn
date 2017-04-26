@@ -45,7 +45,14 @@
 #define DEFAULT_BIAS 1
 #define DEFAULT_WEIGHT 1
 
+
 #define DELIM ","
+
+#define stub 1
+#define CONNECTION 2
+#define INPUT_LAYER 0
+#define HIDDEN_LAYER 1
+#define OUTPUT_LAYER 2
 
 struct Node {
 	float value;
@@ -55,12 +62,29 @@ struct Node {
 	int sigmoid;
 };
 
+typedef struct node{
+	int nvalue;
+	int nbias;
+	float weight[CONNECTION];
+}node_t;
+
+
+typedef struct training_data{
+   int i1;
+	 int i2;
+	 float out;
+
+}trainset_t;
+
 int show_help(char *, char *);
 int bnn_init(char *, int, char **, int, int *, int);
 int bnn_train(char *);
 int bnn_run(int, char **, int, struct Node **, int, int *, int);
 int bnn_load(char *, struct Node **, int *, int);
 void bnn_show(int, struct Node **, int);
+
+static trainset_t trainset[4]={0};
+static node_t bnn_node[2][2]={0};
 
 int main(int argc, char *argv[]) {
 
@@ -184,12 +208,36 @@ int bnn_init(char *target, int argc, char *argv[], int argpos, int *dim, int isV
 	return 0;
 }
 
+void trainset_stub(void)
+{
+	trainset[0].i1= 1;
+	trainset[0].i2= 1;
+	trainset[0].out=0;
+
+	trainset[1].i1= 0;
+	trainset[1].i2= 1;
+	trainset[1].out=1;
+
+	trainset[2].i1= 1;
+	trainset[2].i2= 0;
+	trainset[2].out=1;
+
+	trainset[3].i1= 0;
+	trainset[3].i2= 0;
+	trainset[3].out=0;
+
+}
+
+
 int bnn_train(char *source) {
+	printf("training bnn : %s\n", source);
+#ifdef stub
 
-    char buffer[255]={0};
+	trainset_stub();
 
-	printf("train: %s\n", source);
+#else
 
+  char buffer[255]={0};
 	FILE *fp = fopen(source, "r+");
 	if (!fp) {
 		printf("Unable to open file: %s\n\n", source);
@@ -199,7 +247,44 @@ int bnn_train(char *source) {
 	{
 	    fscanf(fp, "%s", buffer);
 		fclose(fp);
+
+		//To Do - Fill in the input array from files
 	}
+
+#endif
+   int layer=0,node=0;
+	 int input_node =0;
+	 float exp_out=0;
+
+    bnn_node[layer][input_node].nvalue = trainset[0].i1;
+		bnn_node[layer][input_node+1].nvalue = trainset[0].i2;
+		exp_out =trainset[0].out;
+
+	 for (layer=1 ; layer <= 2 ; layer++)
+	 {
+		 for(node =0;node < 2 ;node++)
+		 {
+			 if(layer <2 )
+			 {
+				 bnn_node[layer][node].nvalue = (bnn_node[layer-1][input_node].nvalue   *  bnn_node[layer-1][node].weight[node]) +
+				                                 bnn_node[layer-1][input_node+1].nvalue   *  bnn_node[layer-1][input_node+1].weight[node];
+
+			 }
+			 if (layer==2)
+			 {
+				 bnn_node[layer][node].nvalue = (bnn_node[layer-1][input_node].nvalue   *  bnn_node[layer-1][node].weight[node]) +
+				                                 bnn_node[layer-1][input_node+1].nvalue   *  bnn_node[layer-1][input_node+1].weight[node];
+				 break;
+			 }
+		 }
+	 }
+
+   if(bnn_node[OUTPUT_LAYER][0].nvalue != exp_out)
+	 {
+      //To do - Adjust weights of nodes
+
+	 }
+
 
 
 
