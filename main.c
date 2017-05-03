@@ -27,45 +27,46 @@ float sigmoid_func(float x,int derive);
 /* Populate with Training dataset*/
 void Initialize_Network(void)
 {
+  printf("\n Initializing Network..... \n");
   #ifdef stub
-  float dataset[][3]= { {1,0,1},{0,1,1},{1,1,0},{0,0,1}};
+  float dataset[][3]= {{0,0,0},{0,1,1},{1,0,1},{1,1,0}};
 
   int set,element;
 
-  for (set=0;set < DATASET_SIZE ; set++)
+  for (set=0;set < DATASET_SIZE ; set++)  //Data set for training
   {
-    for(element=0;element <3 ;element++)
+    for(element=0 ;element < (INPUT_LAYER_SIZE + OUTPUT_LAYER_SIZE) ;element++)  //Input elements
     {
-      if(element < 2)
+      if(element < INPUT_LAYER_SIZE )
       {
         ilayer[set][element]= dataset[set][element];
+        printf("\n Input[%d][%d] = %f",set,element,ilayer[set][element]);
       }
-      if(element ==2)
+      if(element == INPUT_LAYER_SIZE)
       {
-        exp_output[set][element]=dataset[set][element];
-
+        exp_output[set][0]=dataset[set][element];
+        printf("\n ExpectedOutput[%d][%d] = %f\n",set,0,exp_output[set][0]);
       }
-
     }
   }
   //Initialize weights
+
+  hweights[0][0]= 10;
+  hweights[1][0]= -1;
   for(int i=0;i < INPUT_LAYER_SIZE ;i++)
   {
-    hweights[i][0]=1;
-    for(int e=0 ; e < 2 ; e++)
+    for(int e=0 ; e < HIDDEN_LAYER_SIZE ; e++)
     {
-      iweights[i][e]=1;
+      iweights[i][e] = 0.5 - i;
+      printf("\n InputWeight[%d][%d] = %f",i,e,iweights[i][e]);
     }
   }
-
-
+  printf("\n");
   #else
-  //To do copy from file
+  //To do copy dataset from file
 
 
   #endif
-
-
 }
 
 float sigmoid_func(float x,int derive)
@@ -86,22 +87,24 @@ int Train_Network()
 {
   int i,j,t;
   int status=0;
+  float l1sum=0;
+  float l2sum=0;
   float hdlayer[DATASET_SIZE][HIDDEN_LAYER_SIZE]={0};
   float odlayer[DATASET_SIZE][0];
-  float herror[DATASET_SIZE][1]={0};
-  float herror_delta[DATASET_SIZE][HIDDEN_LAYER_SIZE]={0};
-  float ierror[DATASET_SIZE][HIDDEN_LAYER_SIZE]={0};
-  float ierror_delta[DATASET_SIZE][HIDDEN_LAYER_SIZE]={0};
+  float l1weight[INPUT_LAYER_SIZE][HIDDEN_LAYER_SIZE]={0};
+  float l2error_delta[DATASET_SIZE][OUTPUT_LAYER_SIZE]={0};
+  float l1error[DATASET_SIZE][HIDDEN_LAYER_SIZE]={0};
+  float l1error_delta[DATASET_SIZE][HIDDEN_LAYER_SIZE]={0};
   float htranspose[HIDDEN_LAYER_SIZE][DATASET_SIZE]={0};
   float itranspose[INPUT_LAYER_SIZE][DATASET_SIZE]={0};
 
 
-while(t < 100)
+while(t < 8000)
 {
-  //Compute hidden layer weighted sum & its derivative
+  //Compute input & hidden layer weighted sum & its derivative
   for(i=0;i<DATASET_SIZE ; i++)
   {
-    for(j=0;j<2 ; j++)
+    for(j=0;j< HIDDEN_LAYER_SIZE ; j++)
     {
       hlayer[i][j]  = (ilayer[i][0]*iweights[0][j]) + (ilayer[i][1]*iweights[1][j]);
       hlayer[i][j]  = sigmoid_func(hlayer[i][j],0);
@@ -111,34 +114,32 @@ while(t < 100)
   //Predict the output & compute its derivative
   for(i=0;i<DATASET_SIZE ; i++)
   {
-    for(j=0;j<2 ;j++)
+    for(j=0;j<HIDDEN_LAYER_SIZE ;j++)
     {
-      olayer[i][0]  = (hlayer[i][j])*(hweights[j][0]);
-      olayer[i][0]  = sigmoid_func(olayer[i][0],0);
-      odlayer[i][0] = sigmoid_func(olayer[i][0],1);
+      olayer[i][0]  += (hlayer[i][j])*(hweights[j][0]);
     }
+    olayer[i][0]  = sigmoid_func(olayer[i][0],0);
+    odlayer[i][0] = sigmoid_func(olayer[i][0],1);
   }
 
   //Calculate hidden to output  layer  error
   for(i=0;i<DATASET_SIZE ; i++)
   {
-      herror[i][0] =(exp_output[i][0]-olayer[i][0])*odlayer[i][0];
+      l2error_delta[i][0] =(exp_output[i][0]-olayer[i][0])*odlayer[i][0];
   }
 
    /*Calculate input to hidden layer error by finding the contribution weighted error of hidden layer
-   *Contributed weight errors tells us how much of each hidden layer node contributed to the final output error
+   * Contributed weight errors tells us how much of each hidden layer node contributed to the final output error
    * This CWE is the input to hidden layer error
    * This is called back propagation
    */
-  for(i=0;i<DATASET_SIZE ; i++)
+  for(i=0;i< HIDDEN_LAYER_SIZE ; i++)
   {
-    for(j=0;j<2;j++)
+    for(j=0;j<DATASET_SIZE;j++)
     {
-      herror_delta[i][j]=herror[i][0]*hweights[j][0];
-      ierror[i][j] = herror_delta[i][j]*hlayer[i][j];
-      ierror_delta[i][j] = ierror[i][j]* iweights[i][j];
+      l1error[j][i]=l2error_delta[j][0]*hweights[i][0];
+      l1error_delta[j][i] = l1error[j][i]*hdlayer[j][i];
     }
-
   }
 
   //Update weights
@@ -151,14 +152,33 @@ while(t < 100)
     }
   }
 
-  for(i=0;i<2; i++)
+  for(i=0; i<2 ; i++)
   {
+    l1sum=0;
+    l2sum=0;
     for(j=0;j<DATASET_SIZE ; j++)
     {
-      hweights[i][0] += htranspose[i][j]*herror_delta[j][i];
-      iweights[i][j] += itranspose[i][j]*ierror_delta[j][i];
+      l2sum += htranspose[i][j]*l2error_delta[j][0];
+    }
+    hweights[i][0] += l2sum;
+
+    //update l1 weights
+
+    for(int k=0;k < 2 ;k++)
+    {
+      for(j=0;j<DATASET_SIZE ; j++)
+      {
+        l1sum += itranspose[i][j]*l1error_delta[j][k];
+      }
+      //l1weight[i][k] = l1sum;
+      iweights[i][k] += l1sum;
+    }
+    if(t % 1000 == 0)
+    {
+      printf("\n L2 Weight[%d][0] = %f \t L1 weights = %f",i,hweights[i][0],iweights[i][0]);
     }
   }
+  //Loop through
   t++;
 }
 
@@ -175,7 +195,8 @@ while(t < 100)
         status=0;
       }
 
-      printf("\n Output for training set i is : %f", olayer[i][0]);
+      printf("\n Output for training set %d is : %f", i,olayer[i][0]);
+
   }
 
   return status;
@@ -184,7 +205,7 @@ while(t < 100)
 
 int main()
 {
-  printf("\nTraining set is { {1,0,1},\n {0,1,1},\n  {1,1,0},\n {0,0,1} }\n");
+  printf("\n XOR Basic Network Training \n");
   Initialize_Network();
   if(Train_Network())
   {
