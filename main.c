@@ -14,7 +14,8 @@
 #define OUTPUT_LAYER_SIZE 1
 #define TOTAL_LAYERS      3
 
-#define stub 1
+#define stub  1
+#define Debug 1
 static float ilayer[DATASET_SIZE][INPUT_LAYER_SIZE]={0};   //4x2
 static float exp_output[DATASET_SIZE][OUTPUT_LAYER_SIZE]={0};  //4x1
 static float hlayer[DATASET_SIZE][HIDDEN_LAYER_SIZE]={0};   //4x2
@@ -51,13 +52,13 @@ void Initialize_Network(void)
   }
   //Initialize weights
 
-  hweights[0][0]= 10;
-  hweights[1][0]= -1;
+  hweights[0][0]= 15;
+  hweights[1][0]= -15;
   for(int i=0;i < INPUT_LAYER_SIZE ;i++)
   {
     for(int e=0 ; e < HIDDEN_LAYER_SIZE ; e++)
     {
-      iweights[i][e] = 0.5 - i;
+      iweights[i][e] = i- 1.5;
       printf("\n InputWeight[%d][%d] = %f",i,e,iweights[i][e]);
     }
   }
@@ -74,7 +75,7 @@ float sigmoid_func(float x,int derive)
   float s=0;
   if(derive ==0)
   {
-        s = 1/ (1+ exp(x));
+        s = 1/ (1+ exp(-x));
   }
   else
   {
@@ -91,7 +92,6 @@ int Train_Network()
   float l2sum=0;
   float hdlayer[DATASET_SIZE][HIDDEN_LAYER_SIZE]={0};
   float odlayer[DATASET_SIZE][0];
-  float l1weight[INPUT_LAYER_SIZE][HIDDEN_LAYER_SIZE]={0};
   float l2error_delta[DATASET_SIZE][OUTPUT_LAYER_SIZE]={0};
   float l1error[DATASET_SIZE][HIDDEN_LAYER_SIZE]={0};
   float l1error_delta[DATASET_SIZE][HIDDEN_LAYER_SIZE]={0};
@@ -114,6 +114,7 @@ while(t < 8000)
   //Predict the output & compute its derivative
   for(i=0;i<DATASET_SIZE ; i++)
   {
+
     for(j=0;j<HIDDEN_LAYER_SIZE ;j++)
     {
       olayer[i][0]  += (hlayer[i][j])*(hweights[j][0]);
@@ -173,15 +174,23 @@ while(t < 8000)
       //l1weight[i][k] = l1sum;
       iweights[i][k] += l1sum;
     }
+ }
+
+#ifdef Debug
+    //Debug prints
     if(t % 1000 == 0)
     {
-      printf("\n L2 Weight[%d][0] = %f \t L1 weights = %f",i,hweights[i][0],iweights[i][0]);
+      printf("\n @Iteration:%d",t);
+      for(i=0; i<4 ;i++)
+      {
+        printf("\n Output[%d]=%f \n L2_Delta=%f \n L2_Slope=%f \n L2 Weights = %f %f \n",i,olayer[i][0],l2error_delta[i][0],odlayer[i][0],hweights[0][0],hweights[1][0]);
+      }
     }
-  }
-  //Loop through
-  t++;
-}
+#endif
 
+  //Loop through
+    t++;
+}
 
   for(i=0;i<DATASET_SIZE ; i++)
   {
@@ -196,6 +205,7 @@ while(t < 8000)
       }
 
       printf("\n Output for training set %d is : %f", i,olayer[i][0]);
+      //printf("\n L2 Weight[%d][0] = %f",i,hweights[i][0]);
 
   }
 
