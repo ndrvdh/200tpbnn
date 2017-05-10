@@ -5,6 +5,7 @@
 #include<stdio.h>
 #include<string.h>
 #include <math.h>
+#include "train_bnn.h"
 
 /* Network Declaration*/
 
@@ -16,12 +17,12 @@
 
 #define stub  1
 #define Debug 1
-static float ilayer[DATASET_SIZE][INPUT_LAYER_SIZE]={0};   //4x2
-static float exp_output[DATASET_SIZE][OUTPUT_LAYER_SIZE]={0};  //4x1
-static float hlayer[DATASET_SIZE][HIDDEN_LAYER_SIZE]={0};   //4x2
-static float olayer[DATASET_SIZE][OUTPUT_LAYER_SIZE]={0};   //4x1
-static float iweights[INPUT_LAYER_SIZE][HIDDEN_LAYER_SIZE]={0};  //2x2
-static float hweights[HIDDEN_LAYER_SIZE][OUTPUT_LAYER_SIZE]={0};  //2x1
+static float ilayer[DATASET_SIZE][INPUT_LAYER_SIZE]={};   //4x2
+static float exp_output[DATASET_SIZE][OUTPUT_LAYER_SIZE]={};  //4x1
+static float hlayer[DATASET_SIZE][HIDDEN_LAYER_SIZE]={};   //4x2
+static float olayer[DATASET_SIZE][OUTPUT_LAYER_SIZE]={};   //4x1
+static float iweights[INPUT_LAYER_SIZE][HIDDEN_LAYER_SIZE]={};  //2x2
+static float hweights[HIDDEN_LAYER_SIZE][OUTPUT_LAYER_SIZE]={};  //2x1
 
 float sigmoid_func(float x,int derive);
 
@@ -52,8 +53,8 @@ void Initialize_Network(void)
   }
   //Initialize weights
 
-  hweights[0][0]= 15;
-  hweights[1][0]= -15;
+  hweights[0][0]= 35;
+  hweights[1][0]= -90;
   for(int i=0;i < INPUT_LAYER_SIZE ;i++)
   {
     for(int e=0 ; e < HIDDEN_LAYER_SIZE ; e++)
@@ -86,17 +87,17 @@ float sigmoid_func(float x,int derive)
 
 int Train_Network()
 {
-  int i,j,t;
+  int i,j,t=0;
   int status=0;
   float l1sum=0;
   float l2sum=0;
-  float hdlayer[DATASET_SIZE][HIDDEN_LAYER_SIZE]={0};
+  float hdlayer[DATASET_SIZE][HIDDEN_LAYER_SIZE]={};
   float odlayer[DATASET_SIZE][0];
-  float l2error_delta[DATASET_SIZE][OUTPUT_LAYER_SIZE]={0};
-  float l1error[DATASET_SIZE][HIDDEN_LAYER_SIZE]={0};
-  float l1error_delta[DATASET_SIZE][HIDDEN_LAYER_SIZE]={0};
-  float htranspose[HIDDEN_LAYER_SIZE][DATASET_SIZE]={0};
-  float itranspose[INPUT_LAYER_SIZE][DATASET_SIZE]={0};
+  float l2error_delta[DATASET_SIZE][OUTPUT_LAYER_SIZE]={};
+  float l1error[DATASET_SIZE][HIDDEN_LAYER_SIZE]={};
+  float l1error_delta[DATASET_SIZE][HIDDEN_LAYER_SIZE]={};
+  float htranspose[HIDDEN_LAYER_SIZE][DATASET_SIZE]={};
+  float itranspose[INPUT_LAYER_SIZE][DATASET_SIZE]={};
 
 
 while(t < 8000)
@@ -178,7 +179,7 @@ while(t < 8000)
 
 #ifdef Debug
     //Debug prints
-    if(t % 1000 == 0)
+    if(t % 2000 == 0)
     {
       printf("\n @Iteration:%d",t);
       for(i=0; i<4 ;i++)
@@ -205,21 +206,30 @@ while(t < 8000)
       }
 
       printf("\n Output for training set %d is : %f", i,olayer[i][0]);
-      //printf("\n L2 Weight[%d][0] = %f",i,hweights[i][0]);
-
   }
 
   return status;
 
 }
 
-int main()
+int bnn_train_network(char *arg)
 {
+  FILE *fp;
+  char *filename = NULL;
+  filename = arg;
+  fp = fopen(filename, "a");
+  if (!fp)
+	{
+  		printf("Unable to write definitions file: %s\n\n", filename);
+  		return EXIT_FAILURE;
+  }
   printf("\n XOR Basic Network Training \n");
   Initialize_Network();
   if(Train_Network())
   {
-    printf("\n Network Successfully trained");
+    printf("\n Network Successfully trained & Updated weights in target file\n");
+		fprintf(fp, "\n l0weights:\n%f\n%f\n%f\n%f\n\n",iweights[0][0],iweights[1][0],iweights[0][1],iweights[1][1]);
+	  fprintf(fp, "\n l1weights:\n%f\n%f\n",hweights[0][0],hweights[1][0]);
   }
   else
   {

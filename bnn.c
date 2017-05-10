@@ -23,6 +23,7 @@
 #include<stdio.h>
 #include<string.h>
 #include<math.h>
+#include "train_bnn.h"
 
 #define FALSE 0
 #define TRUE 1
@@ -44,15 +45,7 @@
 #define DEFAULT_SIGMOID 1
 #define DEFAULT_BIAS 1
 #define DEFAULT_WEIGHT 1
-
-
 #define DELIM ","
-
-#define stub 1
-#define CONNECTION 2
-#define INPUT_LAYER 0
-#define HIDDEN_LAYER 1
-#define OUTPUT_LAYER 2
 
 struct Node {
 	float value;
@@ -62,29 +55,12 @@ struct Node {
 	int sigmoid;
 };
 
-typedef struct node{
-	int nvalue;
-	int nbias;
-	float weight[CONNECTION];
-}node_t;
-
-
-typedef struct training_data{
-   int i1;
-	 int i2;
-	 float out;
-
-}trainset_t;
-
 int show_help(char *, char *);
 int bnn_init(char *, int, char **, int, int *, int);
 int bnn_train(char *);
 int bnn_run(int, char **, int, struct Node **, int, int *, int);
 int bnn_load(char *, struct Node **, int *, int);
 void bnn_show(int, struct Node **, int);
-
-static trainset_t trainset[4]={0};
-static node_t bnn_node[2][2]={0};
 
 int main(int argc, char *argv[]) {
 
@@ -95,25 +71,36 @@ int main(int argc, char *argv[]) {
 	int isVerbose = FALSE;
 	int dim[5] = {0, 0, 0, 0, DEFAULT_SIGMOID};
 	char *filename = NULL;
-
-	if (argc < 4) {
-		ret_val = show_help(argv[1], argv[2]);
+  printf("\n***** Binary Network Simulator ******\n\n");
+	if (argc < 3)
+	{
+		ret_val = show_help("help","-a");
 		return ret_val;
 	}
-	else {
+	else if(argc < 4)
+	{
+		ret_val = show_help("help",argv[2]);
+		return ret_val;
+	}
+	else
+	{
 		filename = argv[argpos];
 		argpos++;
 
-		if (strcmp(argv[argpos], "init") == 0) {
+		if (strcmp(argv[argpos], "init") == 0)
+		{
 			mode = BNN_INIT;
 		}
-		else if (strcmp(argv[argpos], "train") == 0) {
+		else if (strcmp(argv[argpos], "train") == 0)
+		{
 			mode = BNN_TRAIN;
 		}
-		else if (strcmp(argv[argpos], "run") == 0) {
+		else if (strcmp(argv[argpos], "run") == 0)
+		{
 			mode = BNN_RUN;
 		}
-		else {
+		else
+		{
 			ret_val = show_help(argv[1], argv[2]);
 			return ret_val;
 		}
@@ -127,6 +114,7 @@ int main(int argc, char *argv[]) {
 
 	if (BNN_INIT == mode) {
 		ret_val = bnn_init(filename, argc, argv, argpos, dim, isVerbose);
+		printf("\n BNN Initialized");
 		return ret_val;
 	}
 	else if (BNN_TRAIN == mode) {
@@ -208,91 +196,13 @@ int bnn_init(char *target, int argc, char *argv[], int argpos, int *dim, int isV
 	return 0;
 }
 
-void trainset_stub(void)
+int bnn_train(char *source)
 {
-	trainset[0].i1= 1;
-	trainset[0].i2= 1;
-	trainset[0].out=0;
+	int status=0;
 
-	trainset[1].i1= 0;
-	trainset[1].i2= 1;
-	trainset[1].out=1;
+	status = bnn_train_network(source);
 
-	trainset[2].i1= 1;
-	trainset[2].i2= 0;
-	trainset[2].out=1;
-
-	trainset[3].i1= 0;
-	trainset[3].i2= 0;
-	trainset[3].out=0;
-
-}
-
-
-int bnn_train(char *source) {
-	printf("training bnn : %s\n", source);
-#ifdef stub
-
-	trainset_stub();
-
-#else
-
-  char buffer[255]={0};
-	FILE *fp = fopen(source, "r+");
-	if (!fp) {
-		printf("Unable to open file: %s\n\n", source);
-		return EXIT_FAILURE;
-	}
-	else
-	{
-	    fscanf(fp, "%s", buffer);
-		fclose(fp);
-
-		//To Do - Fill in the input array from files
-	}
-
-#endif
-   int layer=0,node=0;
-	 int input_node =0;
-	 float exp_out=0;
-
-    bnn_node[layer][input_node].nvalue = trainset[0].i1;
-		bnn_node[layer][input_node+1].nvalue = trainset[0].i2;
-		exp_out =trainset[0].out;
-
-	 for (layer=1 ; layer <= 2 ; layer++)
-	 {
-		 for(node =0;node < 2 ;node++)
-		 {
-			 if(layer <2 )
-			 {
-				 bnn_node[layer][node].nvalue = (bnn_node[layer-1][input_node].nvalue   *  bnn_node[layer-1][node].weight[node]) +
-				                                 bnn_node[layer-1][input_node+1].nvalue   *  bnn_node[layer-1][input_node+1].weight[node];
-
-			 }
-			 if (layer==2)
-			 {
-				 bnn_node[layer][node].nvalue = (bnn_node[layer-1][input_node].nvalue   *  bnn_node[layer-1][node].weight[node]) +
-				                                 bnn_node[layer-1][input_node+1].nvalue   *  bnn_node[layer-1][input_node+1].weight[node];
-				 break;
-			 }
-		 }
-	 }
-
-   if(bnn_node[OUTPUT_LAYER][0].nvalue != exp_out)
-	 {
-      //To do - Adjust weights of nodes
-
-	 }
-
-
-
-
-
-
-
-
-	return 0;
+	return status;
 }
 
 int bnn_run(int argc, char *argv[], int argpos, struct Node **bnn, int bnn_size, int *dim, int isVerbose) {
@@ -506,24 +416,20 @@ void bnn_show(int layer, struct Node **bnn, int bnn_size) {
 	}
 }
 
-#if 0
-void show_help(char *arg1, char *arg2) {
+
+int show_help(char *arg1, char *arg2)
+{
 
 	int isHelp = ( arg1 && strcmp(arg1, "help") == 0 );
 
-	if (isHelp) printf("\nBinary Network Simulator\n\n");
+	if (isHelp)
+	{
 
-	printf("Usage: bnn help|name action [verbose] args\n\n");
+	  printf("Usage: ./bnn [help|xor] [-a|train|run|full|sources|set|values|sigmoid|example]\n\n");
 
-	if (isHelp) {
-}
-}
-#endif
-int show_help(char *arg1, char *arg2){
-
-        if(strcmp(arg2, "help") == 0)
-        {
-			printf("        full [inputs] [output] [nodes] [layers] [sigmoid] where\n");
+    if(strcmp(arg2, "-a") == 0)
+    {
+	  	printf("         full [inputs] [output] [nodes] [layers] [sigmoid]\n\n");
 			printf("         full   = flag to create a fully connected network\n");
 			printf("         inputs = number of input nodes (Default: 2)\n");
 			printf("         outputs = number of output nodes (Default: 1)\n");
@@ -532,26 +438,29 @@ int show_help(char *arg1, char *arg2){
 			printf("         sigmoid = function to calculate node value (Default: 0)\n");
 			printf("         (Type 'bnn help sigmoid' for a list of available functions.)\n");
 			printf("         (Type 'bnn help full' for 'full' file format.)\n\n");
-			printf("        name of a file containing network definitions in format\n");
+			printf("         name of a file containing network definitions in format\n");
 			printf("         NODE_COUNT\\n[i|number|o],bias,inputs,weights,sigmoid\\n(...)\n\n");
 			printf("         inputs and weights are binary encoded, so '1,5,15,3,0\\n1,-3,15,8,0'\n");
 			printf("         sets node 1 and 2 in hidden layer 1 connected to four input nodes\n");
 			printf("         (1111=15) and uses weights -1,-1,-1,1 (0001=8, 0=-1, 1=1)\n\n");
 		}
-		else if ( strcmp(arg2, "train") == 0 ) {
+		else if ( strcmp(arg2, "train") == 0 )
+		{
 			printf("        action 'train': Set up the network using a file of known inputs and\n");
 			printf("                        outputs.\n\n");
 			printf("        File format: i(1,1),...,i(1,max_input):o(1,1),...,o(1,max_output\n");
 			printf("                     (...)\n");
 			printf("                     i(n,1),...,i(n,max_output):o(n,1),...,o(n,max_output)\n\n");
 		}
-		else if ( strcmp(arg2, "run") == 0 ) {
+		else if ( strcmp(arg2, "run") == 0 )
+		{
 			printf("        action 'run': Evaluate a set of input values using a trained network.\n\n");
 			printf("        Input values can be supplied via a file or on the command line. To\n");
 			printf("        use a file, use arguments 'file FILENAME'.\n\n");
 
 		}
-		else if ( strcmp(arg2, "full") == 0 ) {
+		else if ( strcmp(arg2, "full") == 0 )
+		{
 			printf("        arg 'full': Initialize a fully connected neural network. In a\n");
 			printf("                    fully connected neural network, each layer n (n>1) node\n");
 			printf("                    is connected to each layer n-1 node.\n\n");
@@ -561,33 +470,38 @@ int show_help(char *arg1, char *arg2){
 			printf("        Node: If some values are omitted, defaults are used.\n\n");
 			printf("        For command line option or default values, type 'bnn help init'.\n\n");
 		}
-		else if ( strcmp(arg2, "source") == 0 ) {
+		else if ( strcmp(arg2, "source") == 0 )
+		{
 			printf("       arg 'source': Use a file to provide input values. File format differ\n");
 			printf("                     based on the action type. In some cases, a file can be\n");
 			printf("                     used in conjunction with values. In this case, values\n");
 			printf("                     overwrite the parameters provided in the file.\n\n");
 			printf("       For file formats, type 'bnn help action'.\n\n");
 		}
-		else if ( strcmp(arg2, "set") == 0 ) {
+		else if ( strcmp(arg2, "set") == 0 )
+		{
 			printf("       arg 'set': Prompt for input values during action\n\n");
 		}
-		else if ( strcmp(arg2, "values") == 0 ) {
+		else if ( strcmp(arg2, "values") == 0 )
+		{
 			printf("       arg 'values': Provide input values on the command line. In some cases,\n");
 			printf("                     values can be used in conjunction with a file. In this\n");
 			printf("                     case, values overwrite the parameters provided in the file.\n\n");
 			printf("       For arguments, type 'bnn help action'.\n\n");
 		}
-		else if ( strcmp(arg2, "sigmoid") == 0 ) {
+		else if ( strcmp(arg2, "sigmoid") == 0 )
+		{
 			printf("       A sigmoid is a function used in calculating the value of a neural network\n");
 			printf("       node. Different sigmoid functions can be selected. Valid choices are:\n\n");
 			printf("        1 = 1/x where x=\n\n");
 		}
-		else if ( strcmp(arg2, "example") == 0 ) {
-			printf("       Example Commands:\n\n");
+		else if ( strcmp(arg2, "example") == 0 )
+		{
+			printf("       Example Commands:bnn xor [action] [verbose] arg\n\n");
 			printf("       Setup XOR network: ./bnn xor init verbose full 2 1 2 1 1\n");
 			printf("       Run XOR network:   ./bnn xor run verbose 1 1\n\n");
 		}
 
-
-	return 1;//sHelp?EXIT_SUCCESS:EXIT_FAILURE;
+  }
+	return ((isHelp)? EXIT_SUCCESS : EXIT_FAILURE);
 }
